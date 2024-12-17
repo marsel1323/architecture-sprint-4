@@ -1,0 +1,35 @@
+@startuml
+actor Оператор
+participant MES as "MES Application"
+participant "MES API"
+participant Redis
+participant БД as "Database"
+participant RabbitMQ as "RabbitMQ"
+
+Оператор -> MES: Запрос на чтение списка заказов
+MES -> "MES API": Запрос данных в кэше
+"MES API" -> Redis: Запрос данных в кэше
+alt Данные есть в кэше
+    Redis -> "MES API": Данные из кэша
+    "MES API" -> MES: Список заказов
+else Данные отсутствуют в кэше
+    "MES API" -> БД: Запрос данных
+    БД -> "MES API": Данные из БД
+    "MES API" -> Redis: Запись данных в кэш
+    "MES API" -> MES: Список заказов
+end
+
+== Обновление статуса заказа ==
+
+Оператор -> MES: Изменение статуса заказа
+MES -> "MES API": Обновление данных
+"MES API" -> Redis: Инвалидация существующих данных
+"MES API" -> Redis: Запись новых данных в кэш
+"MES API" -> БД: Обновление данных
+
+== Обновление из RabbitMQ ==
+
+RabbitMQ -> "MES API": Сообщение об изменении статуса
+"MES API" -> Redis: Инвалидация данных в кэше
+"MES API" -> БД: Обновление данных
+@enduml
